@@ -1,17 +1,17 @@
 """TorrentCheker
 Чекер, который проверяет торрент-трекеры на предмет появления новых раздач с 
 фильмами в выбранных жанрах и генерит страницу с прямыми ссылками на скачивание.
-Версия 0.0.1
+Версия 0.0.2
 Автор @SoloMen88"""
 
 import datetime
 import gzip
-import http.cookiejar
 import operator
 import re
 import urllib.parse
 import urllib.request
 from urllib.parse import quote, urljoin
+import requests
 
 from bs4 import BeautifulSoup
 
@@ -19,7 +19,7 @@ from generateHTML import generateHTML
 from kinopoisk_api import KP
 import settings
 
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 KP_TOKEN = settings.KP_TOKEN
 LOAD_DAYS = settings.LOAD_DAYS
 SORT_TYPE = settings.SORT_TYPE
@@ -80,6 +80,7 @@ def main():
     results = rutorResultsForDays(LOAD_DAYS)
     movies = convertRutorResults(results)
     movies.sort(key=operator.itemgetter(SORT_TYPE), reverse=True)
+    print("Генерируем файл с результатами.")
     generateHTML(movies, HTML_SAVE_PATH)
 
     print("Работа программы завершена успешно.")
@@ -163,10 +164,12 @@ def convertRutorResults(rutorResults):
 
     try:
         if KINOZAL_USERNAME:
+            print("Логинимся на kinozal.tv")
             opener = kinozalAuth(KINOZAL_USERNAME, KINOZAL_PASSWORD)
         else:
             opener = None
     except:
+        print("Не удалось залогиниться на kinozal.tv")
         opener = None
 
     for key, values in rutorResults.items():
@@ -507,6 +510,8 @@ def rutorPagesCountForResults(content):
 
 def loadURLContent(url, headers={}, attempts=CONNECTION_ATTEMPTS, useProxy=False):
     if useProxy and SOCKS5_IP:
+        # proxies = {'http': "socks5://{}:{}".format(SOCKS5_IP, SOCKS5_PORT)}
+        # session = requests.Session(proxies = proxies)
         proxyHandler = SocksiPyHandler(
             socks.PROXY_TYPE_SOCKS5, SOCKS5_IP, SOCKS5_PORT)
         opener = urllib.request.build_opener(proxyHandler)
@@ -535,48 +540,6 @@ def loadURLContent(url, headers={}, attempts=CONNECTION_ATTEMPTS, useProxy=False
     return content
 
 
-def kinopoiskRating(filmID, useProxy=False):
-    result = {}
-
-    headers = {}
-    headers["Accept-encoding"] = "gzip"
-    headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0"
-
-    if useProxy and SOCKS5_IP:
-        proxyHandler = SocksiPyHandler(
-            socks.PROXY_TYPE_SOCKS5, SOCKS5_IP, SOCKS5_PORT)
-        opener = urllib.request.build_opener(proxyHandler)
-    else:
-        opener = urllib.request.build_opener()
-
-    request = urllib.request.Request(
-        "https://rating.kinopoisk.ru/{}.xml".format(filmID), headers=headers)
-    response = opener.open(request)
-    if response.info().get("Content-Encoding") == "gzip":
-        gzipFile = gzip.GzipFile(fileobj=response)
-        content = gzipFile.read().decode(response.info().get_content_charset())
-    else:
-        content = response.read().decode(response.info().get_content_charset())
-
-    patternKP = re.compile(
-        "<kp_rating num_vote=\"([0-9]+)\">([0-9]*\.[0-9]*)</kp_rating>")
-    matches = re.findall(patternKP, content)
-
-    if len(matches) == 1:
-        result["rating"] = matches[0][1]
-        result["ratingVoteCount"] = matches[0][0]
-
-    patternIMDb = re.compile(
-        "<imdb_rating num_vote=\"([0-9]+)\">([0-9]*\.[0-9]*)</imdb_rating>")
-    matches = re.findall(patternIMDb, content)
-
-    if len(matches) == 1:
-        result["ratingIMDb"] = matches[0][1]
-        result["ratingIMDbVoteCount"] = matches[0][0]
-
-    return result
-
-
 def filmDetail(filmID):
     result = {}
     content = None
@@ -587,44 +550,18 @@ def filmDetail(filmID):
         pass
 
     if content:
-        freshRating = {}
-        try:
-            freshRating = kinopoiskRating(filmID)
-        except:
-            pass
-        ratingKP = ''
-        ratingKPCount = 0
-        ratingIMDb = ''
-        ratingIMDbCount = 0
-        if freshRating.get("rating") and freshRating.get("ratingVoteCount"):
-            ratingKP = freshRating.get("rating")
-            ratingKPCount = freshRating.get("ratingVoteCount")
-            try:
-                ratingKP = "{0:.1f}".format(float(ratingKP))
-                ratingKPCount = int(ratingKPCount)
-            except:
-                ratingKPCount = 0
-            if ratingKPCount < MIN_VOTES_KP:
-                ratingKP = ""
+        if content.kp_rate_cnt < MIN_VOTES_KP:
+            content.kp_rate = None
+        if content.imdb_rate_cnt < MIN_VOTES_IMDB:
+            content.imdb_rate = None
 
-        if freshRating.get("ratingIMDb") and freshRating.get("ratingIMDbVoteCount"):
-            ratingIMDb = freshRating.get("ratingIMDb")
-            ratingIMDbCount = freshRating.get("ratingIMDbVoteCount")
-            try:
-                ratingIMDb = "{0:.1f}".format(float(ratingIMDb))
-                ratingIMDbCount = int(ratingIMDbCount)
-            except:
-                ratingIMDbCount = 0
-            if ratingIMDbCount < MIN_VOTES_IMDB:
-                ratingIMDb = ""
-
-        if ratingIMDb and ratingKP:
+        if content.imdb_rate and content.kp_rate:
             rating = "{0:.1f}".format(
-                (float(ratingKP) + float(ratingIMDb)) / 2.0 + 0.001)
-        elif ratingKP:
-            rating = ratingKP
-        elif ratingIMDb:
-            rating = ratingIMDb
+                (content.imdb_rate + content.kp_rate) / 2.0 + 0.001)
+        elif content.kp_rate:
+            rating = content.kp_rate
+        elif content.imdb_rate:
+            rating = content.imdb_rate
         else:
             rating = "0"
 
@@ -673,9 +610,9 @@ def filmDetail(filmID):
         result["posterURL"] = content.poster
         result["filmLength"] = content.duration
         result["ratingKP"] = content.kp_rate
-        result["ratingKPCount"] = ratingKPCount
+        result["ratingKPCount"] = content.kp_rate_cnt
         result["ratingIMDb"] = content.imdb_rate
-        result["ratingIMDbCount"] = ratingIMDbCount
+        result["ratingIMDbCount"] = content.imdb_rate_cnt
         result["rating"] = rating
         result["ratingFloat"] = float(rating)
         result["directors"] = directorsResult
@@ -1002,71 +939,45 @@ def kinozalAuth(username, password, useProxy=True):
     headers["Accept-encoding"] = "gzip"
     headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0"
 
-    cookiejar = http.cookiejar.CookieJar()
-
-    if useProxy and SOCKS5_IP:
-        proxyHandler = SocksiPyHandler(
-            socks.PROXY_TYPE_SOCKS5, SOCKS5_IP, SOCKS5_PORT)
-        opener = urllib.request.build_opener(proxyHandler)
-        opener.add_handler(urllib.request.HTTPCookieProcessor(cookiejar))
-    else:
-        opener = urllib.request.build_opener(
-            urllib.request.HTTPCookieProcessor(cookiejar))
-
-    values = {"username": username, "password": password}
-    data = urllib.parse.urlencode(values).encode()
-
-    request = urllib.request.Request(
-        "http://kinozal.tv/login.php", data=data, headers=headers)
+    session = requests.Session()
     try:
-        response = opener.open(request)
+        auth = session.post("https://kinozal.tv/takelogin.php",
+                            data={'login': KINOZAL_USERNAME,
+                                  'password': KINOZAL_PASSWORD},
+                            headers=headers)
+        return session
     except:
-        response = opener.open(request)
-
-    cookieSet = set()
-
-    for cookie in cookiejar:
-        cookieSet.add(cookie.name)
-
-    # if ("pass" in cookieSet) and ("uid" in cookieSet):
-    return opener
-
-    return None
+        return None
 
 
-def kinozalSearch(filmDetail, opener, type, licenseOnly=False):
-    targetDate = datetime.date.today() - datetime.timedelta(days=LOAD_DAYS)
+def kinozalSearch(filmDetail, session, type, licenseOnly=False):
     headers = {}
     headers["Accept-encoding"] = "gzip"
     headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0"
 
-    result = {}
+    targetDate = datetime.date.today() - datetime.timedelta(days=LOAD_DAYS)
     DBResults = []
     PMResults = []
 
     if type == "BDRip 1080p" or type == "BDRip-HEVC 1080p":
-        request = urllib.request.Request(KINOZAL_SEARCH_BDRIP.format(
-            quote(filmDetail["nameRU"])), headers=headers)
+        try:
+            response = session.get(KINOZAL_SEARCH_BDRIP.format(
+                quote(filmDetail["nameRU"])), headers=headers)
+        except:
+            response = session.get(KINOZAL_SEARCH_BDRIP.format(
+                quote(filmDetail["nameRU"])), headers=headers)
     elif type == "BDRemux":
-        request = urllib.request.Request(KINOZAL_SEARCH_BDREMUX.format(
-            quote(filmDetail["nameRU"])), headers=headers)
+        try:
+            response = session.get(KINOZAL_SEARCH_BDREMUX.format(
+                quote(filmDetail["nameRU"])), headers=headers)
+        except:
+            response = session.get(KINOZAL_SEARCH_BDREMUX.format(
+                quote(filmDetail["nameRU"])), headers=headers)
     else:
         return None
 
-    try:
-        response = opener.open(request)
-    except:
-        response = opener.open(request)
-
-    if response.info().get("Content-Encoding") == "gzip":
-        gzipFile = gzip.GzipFile(fileobj=response)
-        content = gzipFile.read().decode(response.info().get_content_charset())
-    else:
-        content = response.read().decode(response.info().get_content_charset())
-
-    content = content.replace("\n", "")
+    content = response.text.replace("\n", "")
     soup = BeautifulSoup(content, 'html.parser')
-
     elements = soup.find_all("td", class_=["nam"])
 
     if len(elements) == 0:
@@ -1134,37 +1045,26 @@ def kinozalSearch(filmDetail, opener, type, licenseOnly=False):
         if ("3D" in typePart) or ("TS" in typePart) or ("LINE" in typePart):
             continue
 
-        request = urllib.request.Request(
-            "http://kinozal.tv/details.php?id={}".format(kinozalID), headers=headers)
-
         try:
-            response = opener.open(request)
+            response = session.get(
+                "http://kinozal.tv/details.php?id={}".format(kinozalID), headers=headers)
         except:
-            response = opener.open(request)
+            response = session.get(
+                "http://kinozal.tv/details.php?id={}".format(kinozalID), headers=headers)
 
-        if response.info().get("Content-Encoding") == "gzip":
-            gzipFile = gzip.GzipFile(fileobj=response)
-            content = gzipFile.read().decode(response.info().get_content_charset())
-        else:
-            content = response.read().decode(response.info().get_content_charset())
+        content = response.text.replace("\n", "")
         patternTabID = re.compile(
             "<a onclick=\"showtab\({},(\d)\); return false;\" href=\"#\">Релиз</a>".format(kinozalID))
         matches = re.findall(patternTabID, content)
         if len(matches) != 1:
             continue
-
-        request = urllib.request.Request(
-            "http://kinozal.tv/get_srv_details.php?id={}&pagesd={}".format(kinozalID, matches[0]), headers=headers)
         try:
-            response = opener.open(request)
+            response = session.get(
+                "http://kinozal.tv/get_srv_details.php?id={}&pagesd={}".format(kinozalID, matches[0]), headers=headers)
         except:
-            response = opener.open(request)
-        if response.info().get("Content-Encoding") == "gzip":
-            gzipFile = gzip.GzipFile(fileobj=response)
-            content = gzipFile.read().decode(response.info().get_content_charset())
-        else:
-            content = response.read().decode(response.info().get_content_charset())
-
+            response = session.get(
+                "http://kinozal.tv/get_srv_details.php?id={}&pagesd={}".format(kinozalID, matches[0]), headers=headers)
+        content = response.text.replace("\n", "")
         content = content.upper()
         pmAudioOK = False
 
@@ -1205,18 +1105,13 @@ def kinozalSearch(filmDetail, opener, type, licenseOnly=False):
             # return None
             DBResults.sort(key=operator.itemgetter(
                 "license", "torrentDate"), reverse=True)
-        request = urllib.request.Request(
-            "http://kinozal.tv/get_srv_details.php?id={}&action=2".format(DBResults[0]["kinozalID"]), headers=headers)
         try:
-            response = opener.open(request)
+            response = session.get(
+                "http://kinozal.tv/get_srv_details.php?id={}&action=2".format(DBResults[0]["kinozalID"]), headers=headers)
         except:
-            response = opener.open(request)
-        if response.info().get("Content-Encoding") == "gzip":
-            gzipFile = gzip.GzipFile(fileobj=response)
-            content = gzipFile.read().decode(response.info().get_content_charset())
-        else:
-            content = response.read().decode(response.info().get_content_charset())
-
+            response = session.get(
+                "http://kinozal.tv/get_srv_details.php?id={}&action=2".format(DBResults[0]["kinozalID"]), headers=headers)
+        content = response.text.replace("\n", "")
         patternHash = re.compile("[A-F0-9]{40}")
         match = re.search(patternHash, content)
 
@@ -1231,18 +1126,14 @@ def kinozalSearch(filmDetail, opener, type, licenseOnly=False):
             # return None
             PMResults.sort(key=operator.itemgetter(
                 "license", "torrentDate"), reverse=True)
-        request = urllib.request.Request(
-            "http://kinozal.tv/get_srv_details.php?id={}&action=2".format(PMResults[0]["kinozalID"]), headers=headers)
         try:
-            response = opener.open(request)
+            response = session.get(
+                "http://kinozal.tv/get_srv_details.php?id={}&action=2".format(PMResults[0]["kinozalID"]), headers=headers)
         except:
-            response = opener.open(request)
-        if response.info().get("Content-Encoding") == "gzip":
-            gzipFile = gzip.GzipFile(fileobj=response)
-            content = gzipFile.read().decode(response.info().get_content_charset())
-        else:
-            content = response.read().decode(response.info().get_content_charset())
+            response = session.get(
+                "http://kinozal.tv/get_srv_details.php?id={}&action=2".format(PMResults[0]["kinozalID"]), headers=headers)
 
+        content = response.text.replace("\n", "")
         patternHash = re.compile("[A-F0-9]{40}")
         match = re.search(patternHash, content)
 
