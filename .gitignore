@@ -130,10 +130,18 @@ ENV/
 env.bak/
 venv.bak/
 
+# Debags
+tests.py
+settings.py
+settings.ini
+temp.py
+releases.html
+cache.json
+
 # Spyder project settings
 .spyderproject
 .spyproject
-
+.vscode
 # Rope project settings
 .ropeproject
 
