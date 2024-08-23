@@ -1,13 +1,4 @@
-# USE_MAGNET = False
-import settings
-
-USE_MAGNET = settings.USE_MAGNET
-SORT_TYPE = settings.SORT_TYPE
-MIN_VOTES_KP = settings.MIN_VOTES_KP
-MIN_VOTES_IMDB = settings.MIN_VOTES_IMDB
-
-
-def generateHTML(movies, filePath, useMagnet=USE_MAGNET):
+def generateHTML(movies, filePath, sort_type='rating', min_votes_kp=10, min_votes_imdb=50, useMagnet=False):
     f = open(filePath, 'w', encoding='utf-8')
     html = """<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="ru-RU">
@@ -68,7 +59,7 @@ def generateHTML(movies, filePath, useMagnet=USE_MAGNET):
     font-size: 13px;
   }
 """
-    if (SORT_TYPE == "torrentsDate"):
+    if (sort_type == "torrentsDate"):
         html += """  #sortButton1 {
   }
   #sortButton2 {
@@ -457,9 +448,11 @@ function sortTorrentsDate(){
             else:
                 descriptionBlock += descriptionTemplate.format(
                     "возраст", "от 18 лет")
-
-        filmLength = str(movie["filmLength"] // 60) + \
-            ":" + str(movie["filmLength"] % 60) + " ч"
+        try:
+            filmLength = str(movie["filmLength"] // 60) + \
+                ":" + str(movie["filmLength"] % 60) + " ч"
+        except:
+            filmLength = "-"
         descriptionBlock += descriptionTemplate.format(
             "продолжительность", filmLength)
 
@@ -468,7 +461,7 @@ function sortTorrentsDate(){
         else:
             if movie["ratingKPCount"] == 0:
                 rKP = "нет"
-            elif movie["ratingKPCount"] < MIN_VOTES_KP:
+            elif movie["ratingKPCount"] < min_votes_kp:
                 rKP = "мало голосов"
             else:
                 rKP = "нет"
@@ -481,7 +474,7 @@ function sortTorrentsDate(){
         else:
             if movie["ratingIMDbCount"] == 0:
                 rIMDb = "нет"
-            elif movie["ratingIMDbCount"] < MIN_VOTES_IMDB:
+            elif movie["ratingIMDbCount"] < min_votes_imdb:
                 rIMDb = "мало голосов"
             else:
                 rIMDb = "нет"

@@ -1,56 +1,88 @@
 """TorrentCheker
 Чекер, который проверяет торрент-трекеры на предмет появления новых раздач с 
 фильмами в выбранных жанрах и генерит страницу с прямыми ссылками на скачивание.
-Версия 0.0.2
+Версия 0.0.2b
 Автор @SoloMen88"""
 
 import datetime
-import gzip
 import operator
 import re
-import urllib.parse
-import urllib.request
 from urllib.parse import quote, urljoin
 import requests
-
 from bs4 import BeautifulSoup
-
+import configparser
+import os
 from generateHTML import generateHTML
 from kinopoisk_api import KP
-import settings
 
-VERSION = '0.0.2'
-KP_TOKEN = settings.KP_TOKEN
-LOAD_DAYS = settings.LOAD_DAYS
-SORT_TYPE = settings.SORT_TYPE
-MIN_VOTES_KP = settings.MIN_VOTES_KP
-MIN_VOTES_IMDB = settings.MIN_VOTES_IMDB
-HTML_SAVE_PATH = settings.HTML_SAVE_PATH
 
-SOCKS5_IP = settings.SOCKS5_IP
-SOCKS5_PORT = settings.SOCKS5_PORT
-if SOCKS5_IP:
-    import socks
-    from sockshandler import SocksiPyHandler
-CONNECTION_ATTEMPTS = settings.CONNECTION_ATTEMPTS
+print('http://rutor.info/search/{}/{}/300/0/BDRip|(WEB%20DL)%201080p|1080%D1%80%7C2160%D1%80%7C1080i%20{}')
+settings = configparser.ConfigParser()
+if os.path.isfile('settings.ini'):
+    settings.read('settings.ini', encoding="cp1251")
+else:
+    settings['PRIVATE'] = {
+        'KP_TOKEN': 'токен с сайта https://kinopoiskapiunofficial.tech',
+        'KINOZAL_USERNAME': 'KINOZAL_USERNAME',
+        'KINOZAL_PASSWORD': 'KINOZAL_PASSWORD',
+        'SOCKS5_IP': '',
+        'SOCKS5_PORT': ''
+    }
+    settings['BASE'] = {
+        'CONNECTION_ATTEMPTS': 3,
+        'LOAD_DAYS': 3,
+        'SORT_TYPE': 'rating',
+        'USE_MAGNET': False,
+        'MIN_VOTES_KP': 50,
+        'MIN_VOTES_IMDB': 100,
+        'HTML_SAVE_PATH': '.\\torrents_list.html',
+        'GENRES': ['ужасы', 'фантастика', 'триллер'],
+        'GROUPS': [1, 5, 7, 9],
+        'RELEASE_YEAR_AFTER': 2024
+    }
+    settings['RUTOR'] = {
+        'RUTOR_BASE_URL': 'http://rutor.info',
+        'RUTOR_SEARCH_MAIN': "http://rutor.info/search/{}/{}/300/0/BDRip|(WEB%20DL)%201080p|1080%D1%80%7C2160%D1%80%7C1080i%20{}".replace('%', '%%')
+    }
+    settings['KINOZAL'] = {
+        'KINOZAL_SEARCH_BDREMUX': 'https://kinozal.tv/browse.php?s=%5E{}&g=3&c=0&v=4&d=0&w=0&t=0&f=0'.replace('%', '%%'),
+        'KINOZAL_SEARCH_BDRIP': 'https://kinozal.tv/browse.php?s=%5E{}&g=3&c=0&v=3&d=0&w=0&t=0&f=0'.replace('%', '%%')
+    }
+    with open('settings.ini', 'w') as settingsfile:
+        settings.write(settingsfile)
+        settings.read('settings.ini', encoding="cp1251")
 
-GENRES = settings.GENRES
-GROUPS = settings.GROUPS
-RELEASE_YEAR = settings.RELEASE_YEAR
+VERSION = '0.0.2b'
+KP_TOKEN = settings.get('PRIVATE', 'KP_TOKEN')
+KINOZAL_USERNAME = settings.get('PRIVATE', 'KINOZAL_USERNAME')
+KINOZAL_PASSWORD = settings.get('PRIVATE', 'KINOZAL_PASSWORD')
+SOCKS5_IP = settings.get('PRIVATE', 'SOCKS5_IP')
+SOCKS5_PORT = settings.get('PRIVATE', 'SOCKS5_PORT')
 
-RUTOR_BASE_URL = settings.RUTOR_BASE_URL
-RUTOR_MONTHS = settings.RUTOR_MONTHS
-RUTOR_SEARCH_MAIN = settings.RUTOR_SEARCH_MAIN
+CONNECTION_ATTEMPTS = settings.getint('BASE', 'CONNECTION_ATTEMPTS')
+LOAD_DAYS = settings.getint('BASE', 'LOAD_DAYS')
+SORT_TYPE = settings.get('BASE', 'SORT_TYPE')
+USE_MAGNET = settings.getboolean('BASE', 'USE_MAGNET')
+MIN_VOTES_KP = settings.getint('BASE', 'MIN_VOTES_KP')
+MIN_VOTES_IMDB = settings.getint('BASE', 'MIN_VOTES_IMDB')
+HTML_SAVE_PATH = settings.get('BASE', 'HTML_SAVE_PATH')
+GENRES = settings.get('BASE', 'GENRES')
+GROUPS = settings.get('BASE', 'GROUPS')
+RELEASE_YEAR_AFTER = settings.getint('BASE', 'RELEASE_YEAR_AFTER')
 
-KINOZAL_SEARCH_BDREMUX = settings.KINOZAL_SEARCH_BDREMUX
-KINOZAL_SEARCH_BDRIP = settings.KINOZAL_SEARCH_BDRIP
-KINOZAL_USERNAME = settings.KINOZAL_USERNAME
-KINOZAL_PASSWORD = settings.KINOZAL_PASSWORD
+RUTOR_BASE_URL = settings.get('RUTOR', 'RUTOR_BASE_URL')
+RUTOR_SEARCH_MAIN = settings.get(
+    'RUTOR', 'RUTOR_SEARCH_MAIN').replace('%%', '%')
+
+KINOZAL_SEARCH_BDREMUX = settings.get(
+    'KINOZAL', 'KINOZAL_SEARCH_BDREMUX').replace('%%', '%')
+KINOZAL_SEARCH_BDRIP = settings.get(
+    'KINOZAL', 'KINOZAL_SEARCH_BDRIP').replace('%%', '%')
+
+RUTOR_MONTHS = {"Янв": 1, "Фев": 2, "Мар": 3, "Апр": 4, "Май": 5,
+                "Июн": 6, "Июл": 7, "Авг": 8, "Сен": 9, "Окт": 10, "Ноя": 11, "Дек": 12}
 
 kinopoisk = KP(token=KP_TOKEN)
-if SOCKS5_IP:
-    import socks
-    from sockshandler import SocksiPyHandler
 
 
 def main():
@@ -81,7 +113,8 @@ def main():
     movies = convertRutorResults(results)
     movies.sort(key=operator.itemgetter(SORT_TYPE), reverse=True)
     print("Генерируем файл с результатами.")
-    generateHTML(movies, HTML_SAVE_PATH)
+    generateHTML(movies, HTML_SAVE_PATH, SORT_TYPE,
+                 MIN_VOTES_KP, MIN_VOTES_IMDB, USE_MAGNET)
 
     print("Работа программы завершена успешно.")
 
@@ -110,12 +143,7 @@ def rutorResultsForDays(days):
         while needMore:
             pageResults = rutorResultsOnPage(content)
             for result in pageResults:
-                # if ("Патрик" in result["name"]):
-                # print(result["name"])
                 if result["date"] >= targetDate:
-                    # print(result["name"])
-                    # if not ("Шутки в сторону" in result["name"]):
-                    # continue
                     element = parseRutorElement(result)
                     if not element:
                         continue
@@ -157,8 +185,6 @@ def rutorResultsForDays(days):
 
 def convertRutorResults(rutorResults):
     targetDate = datetime.date.today() - datetime.timedelta(days=LOAD_DAYS)
-    # targetDate = datetime.date.today() - datetime.timedelta(days=65)
-    minPremierDate = datetime.date.today() - datetime.timedelta(days=365)
 
     movies = []
 
@@ -308,11 +334,11 @@ def convertRutorResults(rutorResults):
             continue
         print("Загружены данные для фильма: " + detail["nameRU"] + ".")
 
-        if not detail.get("premierDate"):
+        if not detail.get("year"):
             print("У фильма \"" + detail["nameRU"] +
                   "\" нет даты премьеры. Пропуск фильма.")
             continue
-        if detail["premierDate"] < minPremierDate:
+        if detail["year"] < RELEASE_YEAR_AFTER:
             print("Фильм \"" + detail["nameRU"] +
                   "\" слишком старый. Пропуск фильма.")
             continue
@@ -467,12 +493,30 @@ def convertRutorResults(rutorResults):
     return movies
 
 
-def loadRutorContent(URL, attempts=CONNECTION_ATTEMPTS, useProxy=False):
+def loadRutorContent(url, attempts=CONNECTION_ATTEMPTS, useProxy=False):
     headers = {}
     headers["Accept-encoding"] = "gzip"
     headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0"
 
-    return loadURLContent(URL, headers=headers, attempts=attempts, useProxy=useProxy)
+    if useProxy and SOCKS5_IP:
+        proxies = {'http': "socks5://{}:{}".format(SOCKS5_IP, SOCKS5_PORT)}
+        session = requests.Session(proxies=proxies)
+    else:
+        session = requests.Session()
+
+    response = None
+    n = attempts
+    while n > 0:
+        try:
+            response = session.get(url, headers=headers)
+            break
+        except:
+            n -= 1
+            if (n <= 0):
+                raise ConnectionError(
+                    "Ошибка соединения. Все попытки соединения израсходованы.")
+
+    return response.text
 
 
 def rutorPagesCountForResults(content):
@@ -508,38 +552,6 @@ def rutorPagesCountForResults(content):
     return lastIndex
 
 
-def loadURLContent(url, headers={}, attempts=CONNECTION_ATTEMPTS, useProxy=False):
-    if useProxy and SOCKS5_IP:
-        # proxies = {'http': "socks5://{}:{}".format(SOCKS5_IP, SOCKS5_PORT)}
-        # session = requests.Session(proxies = proxies)
-        proxyHandler = SocksiPyHandler(
-            socks.PROXY_TYPE_SOCKS5, SOCKS5_IP, SOCKS5_PORT)
-        opener = urllib.request.build_opener(proxyHandler)
-    else:
-        opener = urllib.request.build_opener()
-
-    request = urllib.request.Request(url, headers=headers)
-    response = None
-    n = attempts
-    while n > 0:
-        try:
-            response = opener.open(request)
-            break
-        except:
-            n = n - 1
-            if (n <= 0):
-                raise ConnectionError(
-                    "Ошибка соединения. Все попытки соединения израсходованы.")
-
-    if response.info().get("Content-Encoding") == "gzip":
-        gzipFile = gzip.GzipFile(fileobj=response)
-        content = gzipFile.read().decode("utf-8")
-    else:
-        content = response.read().decode("utf-8")
-
-    return content
-
-
 def filmDetail(filmID):
     result = {}
     content = None
@@ -556,26 +568,13 @@ def filmDetail(filmID):
             content.imdb_rate = None
 
         if content.imdb_rate and content.kp_rate:
-            rating = "{0:.1f}".format(
-                (content.imdb_rate + content.kp_rate) / 2.0 + 0.001)
+            rating = (content.imdb_rate + content.kp_rate) / 2.0 + 0.001
         elif content.kp_rate:
             rating = content.kp_rate
         elif content.imdb_rate:
             rating = content.imdb_rate
         else:
-            rating = "0"
-
-        # premierDate = ''
-        # premierType = ''
-        # if (not premierDate) and content.premiereRu:
-        # 	premierDate = datetime.datetime.strptime(content.premiereRu, "%Y-%m-%d").date()
-        # 	premierType = "ru"
-        # if (not premierDate) and content.premiere:
-        # 	premierDate = datetime.datetime.strptime(content.premiere, "%Y-%m-%d").date()
-        # 	premierType = "world"
-        # if (not premierDate) and content.premiereDigital:
-        # 	premierDate = datetime.datetime.strptime(content.premiereDigital, "%Y-%m-%d").date()
-        # 	premierType = "digital"
+            rating = 0
 
         directorsResult = ""
         if len(content.directors) > 0:
@@ -605,7 +604,7 @@ def filmDetail(filmID):
         result["genre"] = ''
         result["genre"] = ", ".join(content.genres)
         result["ratingAgeLimits"] = str(
-            content.age_rating)  # '16' #content.age_rating
+            content.age_rating)
         result["ratingMPAA"] = content.ratingMpaa
         result["posterURL"] = content.poster
         result["filmLength"] = content.duration
@@ -618,11 +617,7 @@ def filmDetail(filmID):
         result["directors"] = directorsResult
         result["actors"] = actorsResult
         result["webURL"] = content.kp_url
-        result["premierDate"] = datetime.date.today()
         result["trailerURL"] = ''
-        # if premierDate:
-        # 	result["premierDate"] = premierDate
-        # result["premierType"] = premierType
 
     return result
 
@@ -682,7 +677,7 @@ def parseRutorElement(dict):
         return None
 
     year = match[1]
-    targetYear = RELEASE_YEAR
+    targetYear = RELEASE_YEAR_AFTER
     # targetYear = (datetime.date.today() - datetime.timedelta(days=365)).year
     if int(year) < targetYear:
         return None

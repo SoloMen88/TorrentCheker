@@ -2,6 +2,8 @@ beautifulsoup4==4.12.3
 bs4==0.0.2
 certifi==2024.7.4
 charset-normalizer==3.3.2
+configparser==7.1.0
+flake8==7.1.1
 idna==3.7
 mccabe==0.7.0
 pycodestyle==2.12.1

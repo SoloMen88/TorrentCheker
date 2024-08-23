@@ -1,7 +1,6 @@
 import json
 import os
 import time
-
 import requests
 
 
@@ -23,15 +22,9 @@ class FILM:
         self.imdb_rate = data['ratingImdb']
         self.imdb_rate_cnt = data['ratingImdbVoteCount']
         self.kp_url = data['webUrl']
-        # self.premiere = data['premiereWorld']
-        # self.premiere = data['year']
         self.poster = data['posterUrl']
         self.poster_preview = data['posterUrlPreview']
         self.ratingMpaa = data['ratingMpaa']
-        # self.premiereRu = data['premiereRu']
-        # self.premiereDigital = data['premiereDigital']
-        # self.premiereRu = data['year']
-        # self.premiereDigital = data['year']
         self.directors = []
         self.actors = []
         for person in data['staff']:
