@@ -135,7 +135,7 @@ tests.py
 settings.py
 settings.ini
 temp.py
-releases.html
+torrents_list.html
 cache.json
 
 # Spyder project settings
