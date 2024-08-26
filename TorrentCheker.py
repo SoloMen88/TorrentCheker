@@ -20,7 +20,7 @@ from kinopoisk_api import KP
 print('http://rutor.info/search/{}/{}/300/0/BDRip|(WEB%20DL)%201080p|1080%D1%80%7C2160%D1%80%7C1080i%20{}')
 settings = ConfigParser()
 if os.path.isfile('settings.ini'):
-    settings.read('settings.ini', encoding="cp1251")
+    settings.read('settings.ini')
 else:
     settings['PRIVATE'] = {
         'KP_TOKEN': 'токен с сайта https://kinopoiskapiunofficial.tech',
@@ -57,7 +57,7 @@ else:
     }
     with open('settings.ini', 'w') as settingsfile:
         settings.write(settingsfile)
-        settings.read('settings.ini', encoding="cp1251")
+        settings.read('settings.ini')
 
 VERSION = '0.0.3'
 KP_TOKEN = settings.get('PRIVATE', 'KP_TOKEN')
@@ -127,7 +127,7 @@ def main():
     print("Проверка доступности megapeer.vip...")
     try:
         content = loadURLContent(
-            MP_SEARCH_MAIN.format(0, 0, ""), useProxy=True)
+            MP_SEARCH_MAIN.format("", 0, 0), useProxy=True)
         count = mpPagesCountForResults(content)
         mp = True
     except:
@@ -145,10 +145,12 @@ def main():
     movies = []
     if rutor:
         results = rutorResultsForDays(LOAD_DAYS)
+        results.update(mpResultsForDays(LOAD_DAYS))
         movies = convertRutorResults(results)
-    if mp:
-        resultsmp = mpResultsForDays(LOAD_DAYS)
-        movies.extend(convertMPResults(resultsmp))
+    # if mp:
+    #     results.extend(mpResultsForDays(LOAD_DAYS))
+    #     # resultsmp = mpResultsForDays(LOAD_DAYS)
+    #     movies.extend(convertMPResults(resultsmp))
     movies.sort(key=operator.itemgetter(SORT_TYPE), reverse=True)
     print("Генерируем файл с результатами.")
     generateHTML(movies, HTML_SAVE_PATH, SORT_TYPE,
@@ -1562,14 +1564,17 @@ def mpPagesCountForResults(content):
         raise ValueError("Ошибка. Нет блока с торрентами.")
 
     try:
-        indexes = [text for text in resultsGroup.b.stripped_strings]
+        # indexes = [text for text in resultsGroup.b.stripped_strings]
+        indexes = resultsGroup.find_all("td", class_="pager")
     except:
         raise ValueError("Ошибка. Нет блока со страницами результатов.")
     if len(indexes) == 0:
-        raise ValueError("Ошибка. Нет блока со страницами результатов.")
-
-    lastIndexStr = indexes[-1]
-    if lastIndexStr.startswith("Страницы"):
+        indexes = resultsGroup.find_all("td", class_="highlight")
+        if len(indexes) == 0:
+            raise ValueError("Ошибка. Нет блока со страницами результатов.")
+    if len(indexes) > 2:
+        lastIndexStr = indexes[-2].text
+    if len(indexes) == 2:
         return 1
 
     lastIndex = int(lastIndexStr)
