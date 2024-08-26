@@ -1,7 +1,7 @@
 """TorrentCheker
 Чекер, который проверяет торрент-трекеры на предмет появления новых раздач с 
 фильмами в выбранных жанрах и генерит страницу с прямыми ссылками на скачивание.
-Версия 0.0.3
+Версия 0.0.3b
 Автор @SoloMen88"""
 
 import datetime
@@ -59,7 +59,7 @@ else:
         settings.write(settingsfile)
         settings.read('settings.ini')
 
-VERSION = '0.0.3'
+VERSION = '0.0.3b'
 KP_TOKEN = settings.get('PRIVATE', 'KP_TOKEN')
 KINOZAL_USERNAME = settings.get('PRIVATE', 'KINOZAL_USERNAME')
 KINOZAL_PASSWORD = settings.get('PRIVATE', 'KINOZAL_PASSWORD')
