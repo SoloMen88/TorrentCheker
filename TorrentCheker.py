@@ -20,7 +20,7 @@ from kinopoisk_api import KP
 print('http://rutor.info/search/{}/{}/300/0/BDRip|(WEB%20DL)%201080p|1080%D1%80%7C2160%D1%80%7C1080i%20{}')
 settings = ConfigParser()
 if os.path.isfile('settings.ini'):
-    settings.read('settings.ini')
+    settings.read('settings.ini', encoding='utf-8')
 else:
     settings['PRIVATE'] = {
         'KP_TOKEN': 'токен с сайта https://kinopoiskapiunofficial.tech',
@@ -57,7 +57,7 @@ else:
     }
     with open('settings.ini', 'w') as settingsfile:
         settings.write(settingsfile)
-        settings.read('settings.ini')
+        settings.read('settings.ini', encoding='utf-8')
 
 VERSION = '0.0.3b'
 KP_TOKEN = settings.get('PRIVATE', 'KP_TOKEN')
@@ -143,14 +143,12 @@ def main():
 
     print("Анализ раздач...")
     movies = []
+    results = {}
     if rutor:
-        results = rutorResultsForDays(LOAD_DAYS)
+        results.update(rutorResultsForDays(LOAD_DAYS))
+    if mp:
         results.update(mpResultsForDays(LOAD_DAYS))
-        movies = convertRutorResults(results)
-    # if mp:
-    #     results.extend(mpResultsForDays(LOAD_DAYS))
-    #     # resultsmp = mpResultsForDays(LOAD_DAYS)
-    #     movies.extend(convertMPResults(resultsmp))
+    movies = convertResults(results)
     movies.sort(key=operator.itemgetter(SORT_TYPE), reverse=True)
     print("Генерируем файл с результатами.")
     generateHTML(movies, HTML_SAVE_PATH, SORT_TYPE,
@@ -223,7 +221,7 @@ def rutorResultsForDays(days):
     return tmpResults
 
 
-def convertRutorResults(rutorResults):
+def convertResults(rutorResults):
     targetDate = datetime.date.today() - datetime.timedelta(days=LOAD_DAYS)
 
     movies = []
@@ -966,8 +964,6 @@ def rutorFilmIDForElements(elements, deep=True):
     else:
         return []
 
-    return elements
-
 
 def kinozalAuth(username, password, useProxy=True):
     headers = {}
@@ -1119,8 +1115,6 @@ def kinozalSearch(filmDetail, session, type, licenseOnly=False):
                     DBResults.append({"fullName": fullName, "kinozalID": kinozalID, "torrentDate": torrentDate,
                                      "seeders": seeders, "leechers": leechers, "license": license})
             else:
-                # print(content)
-                # print(license)
                 DBResults.append({"fullName": fullName, "kinozalID": kinozalID, "torrentDate": torrentDate,
                                  "seeders": seeders, "leechers": leechers, "license": license})
 
@@ -1137,7 +1131,6 @@ def kinozalSearch(filmDetail, session, type, licenseOnly=False):
         DBResults.sort(key=operator.itemgetter(
             "license", "seeders"), reverse=True)
         if DBResults[0]["seeders"] == 0:
-            # return None
             DBResults.sort(key=operator.itemgetter(
                 "license", "torrentDate"), reverse=True)
         try:
@@ -1564,7 +1557,6 @@ def mpPagesCountForResults(content):
         raise ValueError("Ошибка. Нет блока с торрентами.")
 
     try:
-        # indexes = [text for text in resultsGroup.b.stripped_strings]
         indexes = resultsGroup.find_all("td", class_="pager")
     except:
         raise ValueError("Ошибка. Нет блока со страницами результатов.")
@@ -1610,7 +1602,6 @@ def parseMPElement(dict):
 
     year = match[1]
     targetYear = RELEASE_YEAR_AFTER
-    # targetYear = (datetime.date.today() - datetime.timedelta(days=365)).year
     if int(year) < targetYear:
         return None
 
