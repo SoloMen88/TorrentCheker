@@ -56,7 +56,11 @@
 ```
 $ git clone https://github.com/SoloMen88/TorrentCheker
 ```
+<<<<<<< HEAD
 ### Переименовать файл settings — exemple.ini в settings.ini.
+=======
+### Переименовать файл settings — exemple.ini в settings.ini/
+>>>>>>> 4cb86faaea930942e92b41d72b693b6a31b0ec90
 Либо запустить приложение без файла настроек, он будет создан автоматически с дефолтными параметрами.
 
 ### Указание настроек в файле settings.ini:
