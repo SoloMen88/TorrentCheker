@@ -164,10 +164,9 @@ def generateHTML(movies, filePath, sort_type='rating', min_votes_kp=10, min_vote
       display: block;
       font: 12px Arial, sans-serif;
       font-weight: normal;
-      line-height: normal;
+      line-height: 180%;
       font-weight: bold;
-      height: 35px;
-      line-height: 36px;
+      height: 70px;
       -webkit-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
       -moz-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
       transition: background-color 0.1s, color 0.1s, border-color 0.1s;
@@ -188,10 +187,9 @@ def generateHTML(movies, filePath, sort_type='rating', min_votes_kp=10, min_vote
       display: block;
       font: 12px Arial, sans-serif;
       font-weight: normal;
-      line-height: normal;
+      line-height: 180%;
       font-weight: bold;
       height: 35px;
-      line-height: 36px;
       -webkit-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
       -moz-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
       transition: background-color 0.1s, color 0.1s, border-color 0.1s;
@@ -220,7 +218,6 @@ def generateHTML(movies, filePath, sort_type='rating', min_votes_kp=10, min_vote
       line-height: normal;
       font-weight: bold;
       height: 35px;
-      line-height: 36px;
       -webkit-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
       -moz-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
       transition: background-color 0.1s, color 0.1s, border-color 0.1s;
@@ -371,7 +368,7 @@ function sortTorrentsDate(){
                     </div>
                   </td>
                 </tr>"""
-    buttonsTemplate = """          <button class="torrentbutton" style="" onclick="location.href='{}'">{}</button>"""
+    buttonsTemplate = """<button class="torrentbutton" style="" onclick="location.href='{}'">{}</button><br>"""
     buttonsTemplateS = """          <button class="torrentbuttonstar" style="" onclick="location.href='{}'">{}</button>"""
     movieTemplate = """      <div class="block2" data-releaseDate="{}" data-torrentDate="{}" data-rating="{}" data-comboDate="{}">
         <div class="photoInfoTable">
@@ -497,20 +494,24 @@ function sortTorrentsDate(){
         torrents = movie["torrents"]
         buttonsBlock = ""
         for torrent in torrents:
+            if "rutor" in torrent["link"]:
+                site = 'Rutor.info'
+            else:
+                site = 'MegaPeer.vip'
             if torrent["license"]:
                 if useMagnet:
                     buttonsBlock += buttonsTemplateS.format(
-                        torrent["magnet"], torrent["type"])
+                        torrent["magnet"], f'''{site}<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
                 else:
                     buttonsBlock += buttonsTemplateS.format(
-                        torrent["link"], torrent["type"])
+                        torrent["link"], f'''{site}<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
             else:
                 if useMagnet:
                     buttonsBlock += buttonsTemplate.format(
-                        torrent["magnet"], torrent["type"])
+                        torrent["magnet"], f'''{site}<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
                 else:
                     buttonsBlock += buttonsTemplate.format(
-                        torrent["link"], torrent["type"])
+                        torrent["link"], f'''{site}<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
         buttonsBlock += buttonsTemplate.format(
             torrent["page"], "Cтраница торрента")
         displayOrigName = "display: none;"

@@ -1,7 +1,7 @@
 """TorrentCheker
 Чекер, который проверяет торрент-трекеры на предмет появления новых раздач с 
 фильмами в выбранных жанрах и генерит страницу с прямыми ссылками на скачивание.
-Версия 0.0.3b
+Версия 0.0.3c
 Автор @SoloMen88"""
 
 import datetime
@@ -17,7 +17,6 @@ from generateHTML import generateHTML
 from kinopoisk_api import KP
 
 
-print('http://rutor.info/search/{}/{}/300/0/BDRip|(WEB%20DL)%201080p|1080%D1%80%7C2160%D1%80%7C1080i%20{}')
 settings = ConfigParser()
 if os.path.isfile('settings.ini'):
     settings.read('settings.ini', encoding='utf-8')
@@ -42,16 +41,20 @@ else:
         'RELEASE_YEAR_AFTER': 2024
     }
     settings['RUTOR'] = {
+        'USE_RUTOR': True,
         'RUTOR_BASE_URL': 'http://rutor.info',
         'RUTOR_SEARCH_MAIN': "http://rutor.info/search/{}/{}/300/0/BDRip|(WEB%20DL)%201080p|1080%D1%80%7C2160%D1%80%7C1080i%20{}".replace('%', '%%'),
-        'GROUPS_RUTOR': [1, 5, 7, 9]
+        'CATEGORIES_RUTOR': ['зарубежные фильмы', 'наши фильмы', 'аниме', 'мультики']
     }
     settings['MEGAPEER'] = {
+        'USE_MEGAPEER': True,
         'MP_BASE_URL': 'https://megapeer.vip/',
-        'MP_SEARCH_MAIN': "https://megapeer.vip/browse.php?search=1080p+{}&stype=0&sort=0&ascdesc=0&r=0&cat={}&page={}",
-        'GROUPS_RUTOR': [174, 79, 76]
+        'MP_SEARCH_1080': "https://megapeer.vip/browse.php?search=1080+{}&stype=0&sort=0&ascdesc=0&r=0&cat={}&page={}",
+        'MP_SEARCH_2160': "https://megapeer.vip/browse.php?search=2160+{}&stype=0&sort=0&ascdesc=0&r=0&cat={}&page={}",
+        'CATEGORIES_MP': ['зарубежные фильмы', 'наши фильмы', 'аниме', 'мультики']
     }
     settings['KINOZAL'] = {
+        'USE_KINOZAL': True,
         'KINOZAL_SEARCH_BDREMUX': 'https://kinozal.tv/browse.php?s=%5E{}&g=3&c=0&v=4&d=0&w=0&t=0&f=0'.replace('%', '%%'),
         'KINOZAL_SEARCH_BDRIP':   'https://kinozal.tv/browse.php?s=%5E{}&g=3&c=0&v=3&d=0&w=0&t=0&f=0'.replace('%', '%%')
     }
@@ -59,7 +62,7 @@ else:
         settings.write(settingsfile)
         settings.read('settings.ini', encoding='utf-8')
 
-VERSION = '0.0.3b'
+VERSION = '0.0.3c'
 KP_TOKEN = settings.get('PRIVATE', 'KP_TOKEN')
 KINOZAL_USERNAME = settings.get('PRIVATE', 'KINOZAL_USERNAME')
 KINOZAL_PASSWORD = settings.get('PRIVATE', 'KINOZAL_PASSWORD')
@@ -76,15 +79,21 @@ HTML_SAVE_PATH = settings.get('BASE', 'HTML_SAVE_PATH')
 GENRES = settings.getlist('BASE', 'GENRES')
 RELEASE_YEAR_AFTER = settings.getint('BASE', 'RELEASE_YEAR_AFTER')
 
+USE_RUTOR = settings.getboolean('RUTOR', 'USE_RUTOR')
 RUTOR_BASE_URL = settings.get('RUTOR', 'RUTOR_BASE_URL')
 RUTOR_SEARCH_MAIN = settings.get(
     'RUTOR', 'RUTOR_SEARCH_MAIN').replace('%%', '%')
-GROUPS_RUTOR = settings.getlistint('RUTOR', 'GROUPS_RUTOR')
-MP_BASE_URL = settings.get('MEGAPEER', 'MP_BASE_URL')
-MP_SEARCH_MAIN = settings.get(
-    'MEGAPEER', 'MP_SEARCH_MAIN').replace('%%', '%')
-GROUPS_MP = settings.getlistint('MEGAPEER', 'GROUPS_MP')
+CATEGORIES_RUTOR = settings.getlist('RUTOR', 'CATEGORIES_RUTOR')
 
+USE_MEGAPEER = settings.getboolean('MEGAPEER', 'USE_MEGAPEER')
+MP_BASE_URL = settings.get('MEGAPEER', 'MP_BASE_URL')
+MP_SEARCH_1080 = settings.get(
+    'MEGAPEER', 'MP_SEARCH_1080').replace('%%', '%')
+MP_SEARCH_2160 = settings.get(
+    'MEGAPEER', 'MP_SEARCH_2160').replace('%%', '%')
+CATEGORIES_MP = settings.getlist('MEGAPEER', 'CATEGORIES_MP')
+
+USE_KINOZAL = settings.getboolean('KINOZAL', 'USE_KINOZAL')
 KINOZAL_SEARCH_BDREMUX = settings.get(
     'KINOZAL', 'KINOZAL_SEARCH_BDREMUX').replace('%%', '%')
 KINOZAL_SEARCH_BDRIP = settings.get(
@@ -96,6 +105,12 @@ RUTOR_MONTHS = {"Янв": 1, "Фев": 2, "Мар": 3, "Апр": 4, "Май": 5,
 MP_MONTHS = {"Янв": 1, "Фев": 2, "Мар": 3, "Апр": 4, "Мая": 5,
              "Июн": 6, "Июл": 7, "Авг": 8, "Сен": 9, "Окт": 10, "Ноя": 11, "Дек": 12}
 
+CATEGORIES = {
+    'зарубежные фильмы': [1, 174],
+    'наши фильмы': [5, 79],
+    'аниме': [10, 76],
+    'мультики': [7, 76]
+}
 
 kinopoisk = KP(token=KP_TOKEN)
 
@@ -127,7 +142,7 @@ def main():
     print("Проверка доступности megapeer.vip...")
     try:
         content = loadURLContent(
-            MP_SEARCH_MAIN.format("", 0, 0), useProxy=True)
+            MP_SEARCH_1080.format("", 0, 0), useProxy=True)
         count = mpPagesCountForResults(content)
         mp = True
     except:
@@ -144,10 +159,11 @@ def main():
     print("Анализ раздач...")
     movies = []
     results = {}
-    if rutor:
+    if rutor and USE_RUTOR:
         results.update(rutorResultsForDays(LOAD_DAYS))
-    if mp:
-        results.update(mpResultsForDays(LOAD_DAYS))
+    if mp and USE_MEGAPEER:
+        resultsmp = mpResultsForDays(LOAD_DAYS)
+        results = updateResults(results, resultsmp)
     movies = convertResults(results)
     movies.sort(key=operator.itemgetter(SORT_TYPE), reverse=True)
     print("Генерируем файл с результатами.")
@@ -159,17 +175,35 @@ def main():
     return 0
 
 
+def categoriesDifferent(trType, cat):
+    tracker = {
+        'RT': 0,
+        'MP': 1
+    }
+    return CATEGORIES[cat][tracker[trType]]
+
+
+def updateResults(results0, results1):
+    results = results0
+    for result in results1:
+        if result in results0:
+            results[result].extend(results1[result])
+        else:
+            results[result] = results1[result]
+    return results
+
+
 def rutorResultsForDays(days):
     targetDate = datetime.date.today() - datetime.timedelta(days=days)
 
     tmpSet = set()
     tmpResults = {}
 
-    for group in GROUPS_RUTOR:
+    for category in CATEGORIES_RUTOR:
         try:
-            print("Загрузка списка предварительно подходящих раздач...")
+            print("Загрузка списка предварительно подходящих раздач c RT...")
             content = loadURLContent(
-                RUTOR_SEARCH_MAIN.format(0, group, ""), useProxy=True)
+                RUTOR_SEARCH_MAIN.format(0, categoriesDifferent('RT', category), ""), useProxy=True)
             count = rutorPagesCountForResults(content)
         except:
             raise ConnectionError(
@@ -177,9 +211,10 @@ def rutorResultsForDays(days):
 
         i = 0
         needMore = True
+        nextPage = True
 
-        while needMore:
-            pageResults = rutorResultsOnPage(content)
+        while needMore and nextPage:
+            pageResults, nextPage = rutorResultsOnPage(content, False)
             for result in pageResults:
                 if result["date"] >= targetDate:
                     element = parseRutorElement(result)
@@ -190,10 +225,15 @@ def rutorResultsForDays(days):
                     print("Обработка раздачи: {} ({})...".format(
                         element["nameRU"], element["year"]))
                     try:
-                        elements = rutorSearchSimilarElements(element, group)
+                        elements = rutorSearchSimilarElements(
+                            element, categoriesDifferent('RT', category))
                         elements = rutorFilmIDForElements(elements)
-                        # if len(newElements) == 0:
-                        # pass
+                        if USE_MEGAPEER:
+                            elementsMP = mpSearchSimilarElements(
+                                element, categoriesDifferent('MP', category), 2160)
+                            elementsMP.extend(
+                                mpSearchSimilarElements(element, categoriesDifferent('MP', category)))
+                            elements.extend(mpFilmIDForElements(elementsMP))
                     except:
                         raise ConnectionError(
                             "Ошибка. Не удалось загрузить данные похожих раздач или загрузить страницу с описанием.")
@@ -210,10 +250,10 @@ def rutorResultsForDays(days):
             if (i >= count):
                 needMore = False
             if needMore:
-                print("Загрузка списка предварительно подходящих раздач...")
+                print("Загрузка списка предварительно подходящих раздач c RT...")
                 try:
                     content = loadURLContent(
-                        RUTOR_SEARCH_MAIN.format(i, group, ""), useProxy=True)
+                        RUTOR_SEARCH_MAIN.format(i, categoriesDifferent('RT', category), ""), useProxy=True)
                 except:
                     raise ConnectionError(
                         "Ошибка. Не удалось загрузить страницу с результатами поиска или формат данных rutor.info изменился.")
@@ -227,7 +267,7 @@ def convertResults(rutorResults):
     movies = []
 
     try:
-        if KINOZAL_USERNAME:
+        if KINOZAL_USERNAME and USE_KINOZAL:
             print("Логинимся на kinozal.tv")
             opener = kinozalAuth(KINOZAL_USERNAME, KINOZAL_PASSWORD)
         else:
@@ -257,15 +297,15 @@ def convertResults(rutorResults):
                     WBDate = value["date"]
                 else:
                     WBDate = min(WBDate, value["date"])
-        if BDDateLicense:
-            if BDDateLicense < targetDate:
-                continue
-        elif BDDate:
-            if BDDate < targetDate:
-                continue
-        else:
-            if WBDate < targetDate:
-                continue
+        # if BDDateLicense:
+        #     if BDDateLicense < targetDate:
+        #         continue
+        # elif BDDate:
+        #     if BDDate < targetDate:
+        #         continue
+        # else:
+        #     if WBDate < targetDate:
+        #         continue
 
         tr = {}
 
@@ -346,13 +386,13 @@ def convertResults(rutorResults):
                     else:
                         tr["WEB-DL 1080p"] = value
 
-        if tr.get("UHD BDRemux HDR") or tr.get("UHD BDRemux SDR") or tr.get("BDRip-HEVC 1080p") or tr.get("BDRip 1080p") or tr.get("BDRemux"):
-            tr.pop("WEB-DL 2160p HDR", None)
-            tr.pop("WEB-DL 2160p SDR", None)
-            tr.pop("WEB-DL 1080p", None)
+        # if tr.get("UHD BDRemux HDR") or tr.get("UHD BDRemux SDR") or tr.get("BDRip-HEVC 1080p") or tr.get("BDRip 1080p") or tr.get("BDRemux"):
+        #     tr.pop("WEB-DL 2160p HDR", None)
+        #     tr.pop("WEB-DL 2160p SDR", None)
+        #     tr.pop("WEB-DL 1080p", None)
 
-        if tr.get("UHD BDRemux HDR"):
-            tr.pop("UHD BDRemux SDR", None)
+        # if tr.get("UHD BDRemux HDR"):
+        #     tr.pop("UHD BDRemux SDR", None)
 
         print("Загрузка данных для фильма с ID " + values[0]["filmID"] + "...")
         flag = False
@@ -407,16 +447,16 @@ def convertResults(rutorResults):
                     "Какая-то ошибка при работе с kinozal.tv. Подробная информация о проблемах ещё не добавлена в функцию.")
         if tr.get("WEB-DL 1080p"):
             finalResult.append({"link": tr["WEB-DL 1080p"]["fileLink"], "magnet": tr["WEB-DL 1080p"]["magnetLink"], "date": tr["WEB-DL 1080p"]
-                               ["date"], "type": "WEB-DL 1080p", "license": tr["WEB-DL 1080p"]["license"], "page": tr['WEB-DL 1080p']['descriptionLink']})
+                               ["date"], "type": "WEB-DL 1080p", "license": tr["WEB-DL 1080p"]["license"], "page": tr['WEB-DL 1080p']['descriptionLink'], "seeders": tr['WEB-DL 1080p']['seeders'], "leechers": tr['WEB-DL 1080p']['leechers']})
         if tr.get("WEB-DL 2160p HDR"):
             finalResult.append({"link": tr["WEB-DL 2160p HDR"]["fileLink"], "magnet": tr["WEB-DL 2160p HDR"]["magnetLink"], "date": tr["WEB-DL 2160p HDR"]
-                               ["date"], "type": "WEB-DL 2160p HDR", "license": tr["WEB-DL 2160p HDR"]["license"], "page": tr['WEB-DL 2160p HDR']['descriptionLink']})
+                               ["date"], "type": "WEB-DL 2160p HDR", "license": tr["WEB-DL 2160p HDR"]["license"], "page": tr['WEB-DL 2160p HDR']['descriptionLink'], "seeders": tr['WEB-DL 2160p HDR']['seeders'], "leechers": tr['WEB-DL 2160p HDR']['leechers']})
         elif tr.get("WEB-DL 2160p SDR"):
             finalResult.append({"link": tr["WEB-DL 2160p SDR"]["fileLink"], "magnet": tr["WEB-DL 2160p SDR"]["magnetLink"], "date": tr["WEB-DL 2160p SDR"]
-                               ["date"], "type": "WEB-DL 2160p SDR", "license": tr["WEB-DL 2160p SDR"]["license"], "page": tr['WEB-DL 2160p SDR']['descriptionLink']})
+                               ["date"], "type": "WEB-DL 2160p SDR", "license": tr["WEB-DL 2160p SDR"]["license"], "page": tr['WEB-DL 2160p SDR']['descriptionLink'], "seeders": tr['WEB-DL 2160p SDR']['seeders'], "leechers": tr['WEB-DL 2160p SDR']['leechers']})
         if tr.get("BDRip 1080p"):
             finalResult.append({"link": tr["BDRip 1080p"]["fileLink"], "magnet": tr["BDRip 1080p"]["magnetLink"], "date": tr["BDRip 1080p"]
-                               ["date"], "type": "BDRip 1080p", "license": tr["BDRip 1080p"]["license"], "page": tr['BDRip 1080p']['descriptionLink']})
+                               ["date"], "type": "BDRip 1080p", "license": tr["BDRip 1080p"]["license"], "page": tr['BDRip 1080p']['descriptionLink'], "seeders": tr['BDRip 1080p']['seeders'], "leechers": tr['BDRip 1080p']['leechers']})
         elif (tr.get("BDRip-HEVC 1080p") or tr.get("BDRemux")) and opener:
             print("Пробуем найти отсутствующий BDRip 1080p на kinozal.tv...")
             kName = detail["nameRU"]
@@ -452,7 +492,7 @@ def convertResults(rutorResults):
 
             if not found:
                 finalResult.append({"link": tr["BDRip-HEVC 1080p"]["fileLink"], "magnet": tr["BDRip-HEVC 1080p"]["magnetLink"], "date": tr["BDRip-HEVC 1080p"]
-                                   ["date"], "type": "BDRip-HEVC 1080p", "license": tr["BDRip-HEVC 1080p"]["license"], "page": tr['BDRip-HEVC 1080p']['descriptionLink']})
+                                   ["date"], "type": "BDRip-HEVC 1080p", "license": tr["BDRip-HEVC 1080p"]["license"], "page": tr['BDRip-HEVC 1080p']['descriptionLink'], "seeders": tr['BDRip-HEVC 1080p']['seeders'], "leechers": tr['BDRip-HEVC 1080p']['leechers']})
         elif (tr.get("BDRip 1080p") or tr.get("BDRemux")) and opener:
             print("Пробуем найти отсутствующий BDRip-HEVC 1080p на kinozal.tv...")
             kName = detail["nameRU"]
@@ -487,7 +527,7 @@ def convertResults(rutorResults):
 
             if not found:
                 finalResult.append({"link": tr["BDRemux"]["fileLink"], "magnet": tr["BDRemux"]["magnetLink"], "date": tr["BDRemux"]
-                                   ["date"], "type": "BDRemux", "license": tr["BDRemux"]["license"], "page": tr['BDRemux']['descriptionLink']})
+                                   ["date"], "type": "BDRemux", "license": tr["BDRemux"]["license"], "page": tr['BDRemux']['descriptionLink'], "seeders": tr['BDRemux']['seeders'], "leechers": tr['BDRemux']['leechers']})
         elif (tr.get("BDRip-HEVC 1080p") or tr.get("BDRip 1080p")) and opener:
             print("Пробуем найти отсутствующий BDRemux на kinozal.tv...")
             kName = detail["nameRU"]
@@ -505,10 +545,10 @@ def convertResults(rutorResults):
                     "Какая-то ошибка при работе с kinozal.tv. Подробная информация о проблемах ещё не добавлена в функцию.")
         if tr.get("UHD BDRemux HDR"):
             finalResult.append({"link": tr["UHD BDRemux HDR"]["fileLink"], "magnet": tr["UHD BDRemux HDR"]["magnetLink"], "date": tr["UHD BDRemux HDR"]
-                               ["date"], "type": "UHD BDRemux HDR", "license": tr["UHD BDRemux HDR"]["license"], "page": tr['UHD BDRemux HDR']['descriptionLink']})
+                               ["date"], "type": "UHD BDRemux HDR", "license": tr["UHD BDRemux HDR"]["license"], "page": tr['UHD BDRemux HDR']['descriptionLink'], "seeders": tr['UHD BDRemux HDR']['seeders'], "leechers": tr['UHD BDRemux HDR']['leechers']})
         elif tr.get("UHD BDRemux SDR"):
             finalResult.append({"link": tr["UHD BDRemux SDR"]["fileLink"], "magnet": tr["UHD BDRemux SDR"]["magnetLink"], "date": tr["UHD BDRemux SDR"]
-                               ["date"], "type": "UHD BDRemux SDR", "license": tr["UHD BDRemux SDR"]["license"], "page": tr['UHD BDRemux SDR']['descriptionLink']})
+                               ["date"], "type": "UHD BDRemux SDR", "license": tr["UHD BDRemux SDR"]["license"], "page": tr['UHD BDRemux SDR']['descriptionLink'], "seeders": tr['UHD BDRemux SDR']['seeders'], "leechers": tr['UHD BDRemux SDR']['leechers']})
 
         dates = []
         for torrent in finalResult:
@@ -732,7 +772,7 @@ def parseRutorElement(dict):
         nameOriginal = nameRU
 
     if not RU:
-        if not (("ЛИЦЕНЗИЯ" in tags) or ("ITUNES" in tags) or ("D" in tags) or ("D1" in tags) or ("D2" in tags) or ("НЕВАФИЛЬМ" in tags) or ("ПИФАГОР" in tags) or ("AMEDIA" in tags) or ("МОСФИЛЬМ-МАСТЕР" in tags) or ("СВ-ДУБЛЬ" in tags) or ("КИРИЛЛИЦА" in tags) or ("АРК-ТВ" in tagsStr) or ("APK-ТВ" in tagsStr) or ("APK-TB" in tagsStr)):
+        if not (("ЛИЦЕНЗИЯ" in tags) or ("ITUNES" in tags) or ("D" in tags) or ("D1" in tags) or ("D2" in tags) or ("НЕВАФИЛЬМ" in tags) or ("ПИФАГОР" in tags) or ("AMEDIA" in tags) or ("МОСФИЛЬМ-МАСТЕР" in tags) or ("СВ-ДУБЛЬ" in tags) or ("КИРИЛЛИЦА" in tags) or ("АРК-ТВ" in tagsStr) or ("APK-ТВ" in tagsStr) or ("APK-TB" in tagsStr) or ("MovieDalen" in tagsStr) or ("Red Head" in tagsStr) or ("LostFilm" in tagsStr) or ("Jaskier" in tagsStr) or ("HDRezka" in tagsStr)):
             return None
 
     license = True if ("ЛИЦЕНЗИЯ" in tags) else False
@@ -778,7 +818,7 @@ def parseRutorElement(dict):
             nameRU)) + " " + convertToAlfaNum(nameOriginal) + " " + year
         searchPattern = "(^" + convertToAlfaNum(nameRU) + " " + \
             convertToAlfaNum(nameOriginal) + " " + year + \
-            ")|(^" + compareName + ")"
+            ")"  # |(^" + compareName + ")"
         if len(searchPattern) > 130:
             searchPattern = "(^" + convertToAlfaNum(nameRU) + " " + \
                 convertToAlfaNum(nameOriginal) + " " + year + ")"
@@ -791,15 +831,13 @@ def parseRutorElement(dict):
     return result
 
 
-def rutorSearchSimilarElements(element, group):
+def rutorSearchSimilarElements(element, category):
     results = []
-    # print(RUTOR_SEARCH_MAIN.format(0, group, quote(element["searchPattern"])))
     content = loadURLContent(RUTOR_SEARCH_MAIN.format(
-        0, group, quote(element["searchPattern"])), useProxy=True)
+        0, category, quote(element["searchPattern"])), useProxy=True)
     try:
-        pageResults = rutorResultsOnPage(content)
+        pageResults, t = rutorResultsOnPage(content)
     except:
-        # print(RUTOR_SEARCH_MAIN.format(0, group, quote(element["searchPattern"])))
         return results
 
     for result in pageResults:
@@ -812,7 +850,8 @@ def rutorSearchSimilarElements(element, group):
     return results
 
 
-def rutorResultsOnPage(content):
+def rutorResultsOnPage(content, similar=True):
+    targetDate = datetime.date.today() - datetime.timedelta(days=LOAD_DAYS)
     soup = BeautifulSoup(content, 'html.parser')
 
     if (soup == None):
@@ -833,7 +872,7 @@ def rutorResultsOnPage(content):
     elements = resultsGroup.find_all("tr", class_=["gai", "tum"])
 
     if len(elements) == 0:
-        return result
+        return result, True
 
     for element in elements:
         allTDinElement = element.find_all("td", recursive=False)
@@ -860,6 +899,8 @@ def rutorResultsOnPage(content):
             raise ValueError("{} {}".format(
                 datetime.datetime.now(), "Неверный формат блока даты."))
 
+        if (not similar) and torrentDate < targetDate:
+            return result, False
         try:
             seeders = int(peersElement.find(
                 "span", class_="green").get_text(strip=True))
@@ -886,7 +927,6 @@ def rutorResultsOnPage(content):
         except Exception as e:
             raise ValueError("{} {}".format(
                 datetime.datetime.now(), "Неверный формат блока размера."))
-            continue
 
         try:
             mainElements = mainElement.find_all("a")
@@ -911,7 +951,7 @@ def rutorResultsOnPage(content):
         result.append({"date": torrentDate, "name": torrentName, "fileLink": torrentFileLink, "magnetLink": magnetLink,
                       "descriptionLink": torrentLink, "size": torrentSize, "seeders": seeders, "leechers": leechers})
 
-    return result
+    return result, True
 
 
 def rutorFilmIDForElements(elements, deep=True):
@@ -949,7 +989,7 @@ def rutorFilmIDForElements(elements, deep=True):
             for element in elements:
                 content = loadURLContent(
                     element["descriptionLink"], useProxy=True)
-                pageResults = rutorResultsOnPage(content)
+                pageResults = rutorResultsOnPage(content, True)
                 newElements = rutorFilmIDForElements(pageResults, deep=False)
                 if len(newElements) > 0:
                     kID = newElements[0]["filmID"]
@@ -1146,7 +1186,7 @@ def kinozalSearch(filmDetail, session, type, licenseOnly=False):
         if not match:
             return None
 
-        return {"link": "http://dl.kinozal.tv/download.php?id={}".format(DBResults[0]["kinozalID"]), "magnet": "magnet:?xt=urn:btih:{}&dn=kinozal.tv".format(match[0]), "date": DBResults[0]["torrentDate"], "type": type, "license": DBResults[0]["license"]}
+        return {"link": "http://dl.kinozal.tv/download.php?id={}".format(DBResults[0]["kinozalID"]), "magnet": "magnet:?xt=urn:btih:{}&dn=kinozal.tv".format(match[0]), "date": DBResults[0]["torrentDate"], "type": type, "license": DBResults[0]["license"], "seeders": DBResults[0]['seeders'], "leechers": DBResults[0]['leechers']}
     elif len(PMResults) > 0:
         PMResults.sort(key=operator.itemgetter(
             "license", "seeders"), reverse=True)
@@ -1178,11 +1218,11 @@ def mpResultsForDays(days):
     tmpSet = set()
     tmpResults = {}
 
-    for group in GROUPS_MP:
+    for category in CATEGORIES_MP:
         try:
-            print("Загрузка списка предварительно подходящих раздач...")
+            print("Загрузка списка предварительно подходящих раздач 1080p c MP...")
             content = loadURLContent(
-                MP_SEARCH_MAIN.format('', group, 0), useProxy=True)
+                MP_SEARCH_1080.format('', categoriesDifferent('MP', category), 0), useProxy=True)
             count = mpPagesCountForResults(content)
         except:
             raise ConnectionError(
@@ -1203,7 +1243,8 @@ def mpResultsForDays(days):
                     print("Обработка раздачи: {} ({})...".format(
                         element["nameRU"], element["year"]))
                     try:
-                        elements = mpSearchSimilarElements(element, group)
+                        elements = mpSearchSimilarElements(
+                            element, categoriesDifferent('MP', category))
                         elements = mpFilmIDForElements(elements)
                     except:
                         raise ConnectionError(
@@ -1221,10 +1262,62 @@ def mpResultsForDays(days):
             if (i >= count):
                 needMore = False
             if needMore:
-                print("Загрузка списка предварительно подходящих раздач...")
+                print("Загрузка списка предварительно подходящих раздач 1080p c MP...")
                 try:
                     content = loadURLContent(
-                        MP_SEARCH_MAIN.format(i, group, ""), useProxy=True)
+                        MP_SEARCH_1080.format(i, categoriesDifferent('RT', category), ""), useProxy=True)
+                except:
+                    raise ConnectionError(
+                        "Ошибка. Не удалось загрузить страницу с результатами поиска или формат данных megapeer.vip изменился.")
+
+    for category in CATEGORIES_MP:
+        try:
+            print("Загрузка списка предварительно подходящих раздач 2160p c MP...")
+            content = loadURLContent(
+                MP_SEARCH_2160.format('', categoriesDifferent('MP', category), 0), useProxy=True)
+            count = mpPagesCountForResults(content)
+        except:
+            raise ConnectionError(
+                "Ошибка. Не удалось загрузить страницу с результатами поиска или формат данных megapeer.vip изменился.")
+
+        i = 0
+        needMore = True
+
+        while needMore:
+            pageResults = mpResultsOnPage(content)
+            for result in pageResults:
+                if result["date"] >= targetDate:
+                    element = parseMPElement(result)
+                    if not element:
+                        continue
+                    if (element["compareName"] in tmpSet):
+                        continue
+                    print("Обработка раздачи: {} ({})...".format(
+                        element["nameRU"], element["year"]))
+                    try:
+                        elements = mpSearchSimilarElements(
+                            element, categoriesDifferent('RT', category), 2160)
+                        elements = mpFilmIDForElements(elements)
+                    except:
+                        raise ConnectionError(
+                            "Ошибка. Не удалось загрузить данные похожих раздач или загрузить страницу с описанием.")
+                    tmpSet.add(element["compareName"])
+                    if len(elements) > 0:
+                        if (tmpResults.get(elements[0]["filmID"])):
+                            tmpResults[elements[0]["filmID"]].extend(elements)
+                        else:
+                            tmpResults[elements[0]["filmID"]] = elements
+                else:
+                    needMore = False
+                    break
+            i = i + 1
+            if (i >= count):
+                needMore = False
+            if needMore:
+                print("Загрузка списка предварительно подходящих раздач 2160p c MP...")
+                try:
+                    content = loadURLContent(
+                        MP_SEARCH_2160.format(i, categoriesDifferent('RT', category), ""), useProxy=True)
                 except:
                     raise ConnectionError(
                         "Ошибка. Не удалось загрузить страницу с результатами поиска или формат данных megapeer.vip изменился.")
@@ -1663,7 +1756,7 @@ def parseMPElement(dict):
             nameRU)) + " " + convertToAlfaNum(nameOriginal) + " " + year
         searchPattern = "(^" + convertToAlfaNum(nameRU) + " " + \
             convertToAlfaNum(nameOriginal) + " " + year + \
-            ")|(^" + compareName + ")"
+            ")"  # |(^" + compareName + ")"
         if len(searchPattern) > 130:
             searchPattern = "(^" + convertToAlfaNum(nameRU) + " " + \
                 convertToAlfaNum(nameOriginal) + " " + year + ")"
@@ -1676,10 +1769,15 @@ def parseMPElement(dict):
     return result
 
 
-def mpSearchSimilarElements(element, group):
+def mpSearchSimilarElements(element, category, resolution=1080):
     results = []
-    content = loadURLContent(MP_SEARCH_MAIN.format(
-        quote(element["searchPattern"], encoding='cp1251'), group, 0), useProxy=True)
+    searchPattern = f'''{quote(element['nameRU'], encoding='cp1251').replace("%20", "+")}+{element['nameOriginal'].strip().replace(" ", "+")}+{element['year']}'''
+    if resolution == 1080:
+        content = loadURLContent(MP_SEARCH_1080.format(
+            searchPattern, category, 0), useProxy=True)
+    else:
+        content = loadURLContent(MP_SEARCH_2160.format(
+            searchPattern, category, 0), useProxy=True)
     try:
         pageResults = mpResultsOnPage(content)
     except:
@@ -1780,11 +1878,31 @@ def mpResultsOnPage(content):
         except Exception as e:
             raise ValueError("{} {}".format(datetime.datetime.now(
             ), "Неверный формат основного блока в блоке торрента."))
+        if USE_MAGNET:
+            magnetLink = getMPmagnetLink(torrentLink)
+        else:
+            magnetLink = None
 
-        result.append({"date": torrentDate, "name": torrentName, "fileLink": torrentFileLink, "magnetLink": None,
+        result.append({"date": torrentDate, "name": torrentName, "fileLink": torrentFileLink, "magnetLink": magnetLink,
                       "descriptionLink": torrentLink, "size": torrentSize, "seeders": seeders, "leechers": leechers})
 
     return result
+
+
+def getMPmagnetLink(torrentLink):
+    content = loadURLContent(torrentLink, useProxy=True)
+    soup = BeautifulSoup(content, 'lxml')
+    try:
+        resultsDownload = soup.find("div", id="download")
+    except Exception as e:
+        raise ValueError("{} {}".format(
+            datetime.datetime.now(), "Нет блока с ссылками на загрузку."))
+    if resultsDownload == None:
+        raise ValueError("{} {}".format(
+            datetime.datetime.now(), "Нет блока с ссылками на загрузку."))
+    magnetLink = resultsDownload.find("a").get("href").strip()
+
+    return magnetLink
 
 
 def mpFilmIDForElements(elements, deep=True):

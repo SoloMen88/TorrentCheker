@@ -1,6 +1,6 @@
 <div align="center">
   <h1>TorrentCheker</h1>
-  <p>Чекер, который проверяет торрент-трекеры <a href="https://rutor.info/">rutor.info</a> и <a href="https://megapeer.vip/">megapeer.vip</a> на предмет появления новых раздач с фильмами в выбранных жанрах и генерит страницу с прямыми ссылками на скачивание.</p>
+  <p>Чекер, который проверяет торрент-трекеры <a href="https://rutor.info/">rutor.info</a> и <a href="https://megapeer.vip/">megapeer.vip</a> на предмет появления новых раздач с фильмами в выбранных жанрах и генерирует страницу с прямыми ссылками на скачивание.</p>
 
   <img align="center" src="https://img.shields.io/github/repo-size/SoloMen88/TorrentCheker" alt="GitHub repo size">
   <img align="center" src="https://img.shields.io/github/stars/SoloMen88/TorrentCheker.svg?style=social&label=Stars&style=plastic" alt="GitHub Repo stars">
@@ -56,7 +56,9 @@
 ```
 $ git clone https://github.com/SoloMen88/TorrentCheker
 ```
-### Переименовать файл settings — exemple.ini в settings.ini, либо запустить приложение без файла настроек, он будет создан автоматически с дефолтными параметрами.
+### Переименовать файл settings — exemple.ini в settings.ini.
+Либо запустить приложение без файла настроек, он будет создан автоматически с дефолтными параметрами.
+
 ### Указание настроек в файле settings.ini:
 ```
 [PRIVATE]
@@ -99,7 +101,7 @@ TorrentCheker.py
 ### To Do
 * Добавить поиск новых раздач на <a href="https://kinozal.tv/">Кинозал</a>, пока там ищутся фильмы только в более высоком качестве.
 * Добавить поиск новых раздач на <a href="https://rutracker.org/">RuTracker.org</a>.
-* Улучшить верстку генерируемой страницы (добавить выбор качества видео, показывать сидов/личеров и т.д.).
+* Улучшить верстку генерируемой страницы (~~добавить выбор качества видео~~, ~~показывать сидов/личеров~~ и т.д.).
 * 
 
 ### Автор
