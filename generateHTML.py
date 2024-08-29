@@ -54,7 +54,7 @@ def generateHTML(movies, filePath, sort_type='rating', min_votes_kp=10, min_vote
     padding:0;
     padding-top:10px;
     cursor: pointer;
-    text-decoration: dashed underline;
+    text-decoration: underline;
     font-family: tahoma,verdana,arial;
     font-size: 13px;
   }
@@ -68,7 +68,7 @@ def generateHTML(movies, filePath, sort_type='rating', min_votes_kp=10, min_vote
     else:
         html += """  #sortButton1 {
   color: #f60;
-  }w
+  }
   #sortButton2 {
   }"""
     html += """
@@ -161,9 +161,7 @@ def generateHTML(movies, filePath, sort_type='rating', min_votes_kp=10, min_vote
       background-color: #f60;
       border-radius: 3px;
       color: #fff;
-      display: block;
       font: 12px Arial, sans-serif;
-      font-weight: normal;
       line-height: 180%;
       font-weight: bold;
       height: 70px;
@@ -184,12 +182,10 @@ def generateHTML(movies, filePath, sort_type='rating', min_votes_kp=10, min_vote
       appearance: none;
       border-radius: 3px;
       color: #fff;
-      display: block;
       font: 12px Arial, sans-serif;
-      font-weight: normal;
       line-height: 180%;
       font-weight: bold;
-      height: 35px;
+      height: 70px;
       -webkit-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
       -moz-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
       transition: background-color 0.1s, color 0.1s, border-color 0.1s;
@@ -212,9 +208,7 @@ def generateHTML(movies, filePath, sort_type='rating', min_votes_kp=10, min_vote
       background-color: rgba(68, 68, 68, 0.9);
       border-radius: 3px;
       color: #fff;
-      display: block;
       font: 12px Arial, sans-serif;
-      font-weight: normal;
       line-height: normal;
       font-weight: bold;
       height: 35px;
@@ -368,7 +362,7 @@ function sortTorrentsDate(){
                     </div>
                   </td>
                 </tr>"""
-    buttonsTemplate = """<button class="torrentbutton" style="" onclick="location.href='{}'">{}</button><br>"""
+    buttonsTemplate = """<button class="torrentbutton" style="" onclick="location.href='{}'">{}</button>"""
     buttonsTemplateS = """          <button class="torrentbuttonstar" style="" onclick="location.href='{}'">{}</button>"""
     movieTemplate = """      <div class="block2" data-releaseDate="{}" data-torrentDate="{}" data-rating="{}" data-comboDate="{}">
         <div class="photoInfoTable">
@@ -494,6 +488,7 @@ function sortTorrentsDate(){
         torrents = movie["torrents"]
         buttonsBlock = ""
         for torrent in torrents:
+            size = f'''{torrent["size"]//(1024*1024*1024)}.{str(torrent["size"]%(1024*1024*1024))[0:2]}'''
             if "rutor" in torrent["link"]:
                 site = 'Rutor.info'
             else:
@@ -501,19 +496,19 @@ function sortTorrentsDate(){
             if torrent["license"]:
                 if useMagnet:
                     buttonsBlock += buttonsTemplateS.format(
-                        torrent["magnet"], f'''{site}<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
+                        torrent["magnet"], f'''{site} {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
                 else:
                     buttonsBlock += buttonsTemplateS.format(
-                        torrent["link"], f'''{site}<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
+                        torrent["link"], f'''{site} {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
             else:
                 if useMagnet:
                     buttonsBlock += buttonsTemplate.format(
-                        torrent["magnet"], f'''{site}<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
+                        torrent["magnet"], f'''{site} - {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
                 else:
                     buttonsBlock += buttonsTemplate.format(
-                        torrent["link"], f'''{site}<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
+                        torrent["link"], f'''{site} {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
         buttonsBlock += buttonsTemplate.format(
-            torrent["page"], "Cтраница торрента")
+            torrent["page"], "<br>Cтраница торрента<br><br>")
         displayOrigName = "display: none;"
         if len(movie["nameOriginal"]) > 0:
             displayOrigName = ""
