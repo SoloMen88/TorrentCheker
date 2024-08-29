@@ -152,49 +152,54 @@ def generateHTML(movies, filePath, sort_type='rating', min_votes_kp=10, min_vote
       margin-bottom: 20px;
   }
 
-  .torrentbutton {
+  .tracker_link{
       cursor: pointer;
       border: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
-      background-color: #f60;
-      border-radius: 3px;
+      background-color: rgb(255, 102, 0);
+      border-radius: 4px;
       color: #fff;
+      font: 14px Arial, sans-serif;
+      line-height: 180%;
+      font-weight: bold;
+      height: 30px;
+      width: 170px;
+  }
+  .torrent_link{
+      cursor: pointer;
+      border: none;
+      background-color: rgb(255, 187, 0);
+      border-radius: 4px;
+      color: #b40f0f;
       font: 12px Arial, sans-serif;
       line-height: 180%;
       font-weight: bold;
       height: 70px;
+      width: 170px;
+  }
+  .torrentbutton {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
       -webkit-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
       -moz-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
       transition: background-color 0.1s, color 0.1s, border-color 0.1s;
       text-align: center;
       text-decoration: none;
-      width: 170px;
       margin: 10px 0 10px 15px;
       display:inline-block;
   }
-  .torrentbuttonstar {
+  .torrent_link_star {
       cursor: pointer;
       border: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
-      border-radius: 3px;
-      color: #fff;
+      background-color: rgb(255, 187, 0);
+      border-radius: 4px;
+      color: #b40f0f;
       font: 12px Arial, sans-serif;
       line-height: 180%;
       font-weight: bold;
       height: 70px;
-      -webkit-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
-      -moz-transition: background-color 0.1s, color 0.1s, border-color 0.1s;
-      transition: background-color 0.1s, color 0.1s, border-color 0.1s;
-      text-align: center;
-      text-decoration: none;
       width: 170px;
-      margin: 10px 0 10px 15px;
-      display:inline-block;
-      background: #f60 no-repeat url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMS4y MDEgMjkuNjc2Jz48cG9seWdvbiBwb2ludHM9JzE1LjYwMiwwIDE5LjMyNSwxMS4yNzkgMzEuMiwx MS4zMzIgMjEuNjI0LDE4LjM2IDI1LjI0MywyOS42NzYgMTUuNjAyLDIyLjczOCA1Ljk2LDI5LjY3 NiA5LjU3NywxOC4zNiAwLDExLjMzMiAxMS44NzgsMTEuMjc5JyBmaWxsPScjRkZGRkZGJyAvPjwv c3ZnPg==");
+      background: rgb(255, 187, 0) no-repeat url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAzMS4y MDEgMjkuNjc2Jz48cG9seWdvbiBwb2ludHM9JzE1LjYwMiwwIDE5LjMyNSwxMS4yNzkgMzEuMiwx MS4zMzIgMjEuNjI0LDE4LjM2IDI1LjI0MywyOS42NzYgMTUuNjAyLDIyLjczOCA1Ljk2LDI5LjY3 NiA5LjU3NywxOC4zNiAwLDExLjMzMiAxMS44NzgsMTEuMjc5JyBmaWxsPScjRkZGRkZGJyAvPjwv c3ZnPg==");
       background-size: 10px 10px;
       background-position: 3px 3px;
   }
@@ -206,7 +211,7 @@ def generateHTML(movies, filePath, sort_type='rating', min_votes_kp=10, min_vote
       -moz-appearance: none;
       appearance: none;
       background-color: rgba(68, 68, 68, 0.9);
-      border-radius: 3px;
+      border-radius: 4px;
       color: #fff;
       font: 12px Arial, sans-serif;
       line-height: normal;
@@ -362,8 +367,14 @@ function sortTorrentsDate(){
                     </div>
                   </td>
                 </tr>"""
-    buttonsTemplate = """<button class="torrentbutton" style="" onclick="location.href='{}'">{}</button>"""
-    buttonsTemplateS = """          <button class="torrentbuttonstar" style="" onclick="location.href='{}'">{}</button>"""
+    buttonsTemplate = """           <div class="torrentbutton">
+            <button class="torrent_link" onclick="location.href='{}'">{}</button><br>
+            <button class="tracker_link" onclick="location.href='{}'">Cтраница торрента</button>
+          </div>"""
+    buttonsTemplateS = """           <div class="torrentbutton">
+            <button class="torrent_link_star" onclick="location.href='{}'">{}</button><br>
+            <button class="tracker_link" onclick="location.href='{}'">Cтраница торрента</button>
+          </div>"""
     movieTemplate = """      <div class="block2" data-releaseDate="{}" data-torrentDate="{}" data-rating="{}" data-comboDate="{}">
         <div class="photoInfoTable">
           <div class="headerFilm">
@@ -496,19 +507,17 @@ function sortTorrentsDate(){
             if torrent["license"]:
                 if useMagnet:
                     buttonsBlock += buttonsTemplateS.format(
-                        torrent["magnet"], f'''{site} {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
+                        torrent["magnet"], f'''{site} {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''', torrent["page"])
                 else:
                     buttonsBlock += buttonsTemplateS.format(
-                        torrent["link"], f'''{site} {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
+                        torrent["link"], f'''{site} {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''', torrent["page"])
             else:
                 if useMagnet:
                     buttonsBlock += buttonsTemplate.format(
-                        torrent["magnet"], f'''{site} - {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
+                        torrent["magnet"], f'''{site} - {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''', torrent["page"])
                 else:
                     buttonsBlock += buttonsTemplate.format(
-                        torrent["link"], f'''{site} {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''')
-        buttonsBlock += buttonsTemplate.format(
-            torrent["page"], "<br>Cтраница торрента<br><br>")
+                        torrent["link"], f'''{site} {size} Гб<br>{torrent["type"]}<br>S:{torrent['seeders']} L:{torrent['leechers']}''', torrent["page"])
         displayOrigName = "display: none;"
         if len(movie["nameOriginal"]) > 0:
             displayOrigName = ""

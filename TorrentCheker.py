@@ -447,16 +447,16 @@ def convertResults(rutorResults):
                     "Какая-то ошибка при работе с kinozal.tv. Подробная информация о проблемах ещё не добавлена в функцию.")
         if tr.get("WEB-DL 1080p"):
             finalResult.append({"link": tr["WEB-DL 1080p"]["fileLink"], "magnet": tr["WEB-DL 1080p"]["magnetLink"], "date": tr["WEB-DL 1080p"]
-                               ["date"], "type": "WEB-DL 1080p", "license": tr["WEB-DL 1080p"]["license"], "page": tr['WEB-DL 1080p']['descriptionLink'], "seeders": tr['WEB-DL 1080p']['seeders'], "leechers": tr['WEB-DL 1080p']['leechers']})
+                               ["date"], "type": "WEB-DL 1080p", "license": tr["WEB-DL 1080p"]["license"], "page": tr['WEB-DL 1080p']['descriptionLink'], "seeders": tr['WEB-DL 1080p']['seeders'], "leechers": tr['WEB-DL 1080p']['leechers'], "size": tr['WEB-DL 1080p']['size']})
         if tr.get("WEB-DL 2160p HDR"):
             finalResult.append({"link": tr["WEB-DL 2160p HDR"]["fileLink"], "magnet": tr["WEB-DL 2160p HDR"]["magnetLink"], "date": tr["WEB-DL 2160p HDR"]
-                               ["date"], "type": "WEB-DL 2160p HDR", "license": tr["WEB-DL 2160p HDR"]["license"], "page": tr['WEB-DL 2160p HDR']['descriptionLink'], "seeders": tr['WEB-DL 2160p HDR']['seeders'], "leechers": tr['WEB-DL 2160p HDR']['leechers']})
+                               ["date"], "type": "WEB-DL 2160p HDR", "license": tr["WEB-DL 2160p HDR"]["license"], "page": tr['WEB-DL 2160p HDR']['descriptionLink'], "seeders": tr['WEB-DL 2160p HDR']['seeders'], "leechers": tr['WEB-DL 2160p HDR']['leechers'], "size": tr['WEB-DL 2160p HDR']['size']})
         elif tr.get("WEB-DL 2160p SDR"):
             finalResult.append({"link": tr["WEB-DL 2160p SDR"]["fileLink"], "magnet": tr["WEB-DL 2160p SDR"]["magnetLink"], "date": tr["WEB-DL 2160p SDR"]
-                               ["date"], "type": "WEB-DL 2160p SDR", "license": tr["WEB-DL 2160p SDR"]["license"], "page": tr['WEB-DL 2160p SDR']['descriptionLink'], "seeders": tr['WEB-DL 2160p SDR']['seeders'], "leechers": tr['WEB-DL 2160p SDR']['leechers']})
+                               ["date"], "type": "WEB-DL 2160p SDR", "license": tr["WEB-DL 2160p SDR"]["license"], "page": tr['WEB-DL 2160p SDR']['descriptionLink'], "seeders": tr['WEB-DL 2160p SDR']['seeders'], "leechers": tr['WEB-DL 2160p SDR']['leechers'], "size": tr['WEB-DL 2160p SDR']['size']})
         if tr.get("BDRip 1080p"):
             finalResult.append({"link": tr["BDRip 1080p"]["fileLink"], "magnet": tr["BDRip 1080p"]["magnetLink"], "date": tr["BDRip 1080p"]
-                               ["date"], "type": "BDRip 1080p", "license": tr["BDRip 1080p"]["license"], "page": tr['BDRip 1080p']['descriptionLink'], "seeders": tr['BDRip 1080p']['seeders'], "leechers": tr['BDRip 1080p']['leechers']})
+                               ["date"], "type": "BDRip 1080p", "license": tr["BDRip 1080p"]["license"], "page": tr['BDRip 1080p']['descriptionLink'], "seeders": tr['BDRip 1080p']['seeders'], "leechers": tr['BDRip 1080p']['leechers'], "size": tr['BDRip 1080p']['size']})
         elif (tr.get("BDRip-HEVC 1080p") or tr.get("BDRemux")) and opener:
             print("Пробуем найти отсутствующий BDRip 1080p на kinozal.tv...")
             kName = detail["nameRU"]
@@ -492,7 +492,7 @@ def convertResults(rutorResults):
 
             if not found:
                 finalResult.append({"link": tr["BDRip-HEVC 1080p"]["fileLink"], "magnet": tr["BDRip-HEVC 1080p"]["magnetLink"], "date": tr["BDRip-HEVC 1080p"]
-                                   ["date"], "type": "BDRip-HEVC 1080p", "license": tr["BDRip-HEVC 1080p"]["license"], "page": tr['BDRip-HEVC 1080p']['descriptionLink'], "seeders": tr['BDRip-HEVC 1080p']['seeders'], "leechers": tr['BDRip-HEVC 1080p']['leechers']})
+                                   ["date"], "type": "BDRip-HEVC 1080p", "license": tr["BDRip-HEVC 1080p"]["license"], "page": tr['BDRip-HEVC 1080p']['descriptionLink'], "seeders": tr['BDRip-HEVC 1080p']['seeders'], "leechers": tr['BDRip-HEVC 1080p']['leechers'], "size": tr['BDRip-HEVC 1080p']['size']})
         elif (tr.get("BDRip 1080p") or tr.get("BDRemux")) and opener:
             print("Пробуем найти отсутствующий BDRip-HEVC 1080p на kinozal.tv...")
             kName = detail["nameRU"]
@@ -527,7 +527,7 @@ def convertResults(rutorResults):
 
             if not found:
                 finalResult.append({"link": tr["BDRemux"]["fileLink"], "magnet": tr["BDRemux"]["magnetLink"], "date": tr["BDRemux"]
-                                   ["date"], "type": "BDRemux", "license": tr["BDRemux"]["license"], "page": tr['BDRemux']['descriptionLink'], "seeders": tr['BDRemux']['seeders'], "leechers": tr['BDRemux']['leechers']})
+                                   ["date"], "type": "BDRemux", "license": tr["BDRemux"]["license"], "page": tr['BDRemux']['descriptionLink'], "seeders": tr['BDRemux']['seeders'], "leechers": tr['BDRemux']['leechers'], "size": tr['BDRemux']['size']})
         elif (tr.get("BDRip-HEVC 1080p") or tr.get("BDRip 1080p")) and opener:
             print("Пробуем найти отсутствующий BDRemux на kinozal.tv...")
             kName = detail["nameRU"]
@@ -545,10 +545,10 @@ def convertResults(rutorResults):
                     "Какая-то ошибка при работе с kinozal.tv. Подробная информация о проблемах ещё не добавлена в функцию.")
         if tr.get("UHD BDRemux HDR"):
             finalResult.append({"link": tr["UHD BDRemux HDR"]["fileLink"], "magnet": tr["UHD BDRemux HDR"]["magnetLink"], "date": tr["UHD BDRemux HDR"]
-                               ["date"], "type": "UHD BDRemux HDR", "license": tr["UHD BDRemux HDR"]["license"], "page": tr['UHD BDRemux HDR']['descriptionLink'], "seeders": tr['UHD BDRemux HDR']['seeders'], "leechers": tr['UHD BDRemux HDR']['leechers']})
+                               ["date"], "type": "UHD BDRemux HDR", "license": tr["UHD BDRemux HDR"]["license"], "page": tr['UHD BDRemux HDR']['descriptionLink'], "seeders": tr['UHD BDRemux HDR']['seeders'], "leechers": tr['UHD BDRemux HDR']['leechers'], "size": tr['UHD BDRemux HDR']['size']})
         elif tr.get("UHD BDRemux SDR"):
             finalResult.append({"link": tr["UHD BDRemux SDR"]["fileLink"], "magnet": tr["UHD BDRemux SDR"]["magnetLink"], "date": tr["UHD BDRemux SDR"]
-                               ["date"], "type": "UHD BDRemux SDR", "license": tr["UHD BDRemux SDR"]["license"], "page": tr['UHD BDRemux SDR']['descriptionLink'], "seeders": tr['UHD BDRemux SDR']['seeders'], "leechers": tr['UHD BDRemux SDR']['leechers']})
+                               ["date"], "type": "UHD BDRemux SDR", "license": tr["UHD BDRemux SDR"]["license"], "page": tr['UHD BDRemux SDR']['descriptionLink'], "seeders": tr['UHD BDRemux SDR']['seeders'], "leechers": tr['UHD BDRemux SDR']['leechers'], "size": tr['UHD BDRemux SDR']['size']})
 
         dates = []
         for torrent in finalResult:
@@ -646,7 +646,7 @@ def filmDetail(filmID):
             content.imdb_rate = None
 
         if content.imdb_rate and content.kp_rate:
-            rating = (content.imdb_rate + content.kp_rate) / 2.0 + 0.001
+            rating = round(((content.imdb_rate + content.kp_rate) / 2.0), 1)  # + 0.001
         elif content.kp_rate:
             rating = content.kp_rate
         elif content.imdb_rate:
